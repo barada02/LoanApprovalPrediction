@@ -1,0 +1,52 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ML specific
+# Trained models
+models/*.pkl
+models/*.joblib
+
+# Data files
+# Uncomment the next line if you want to exclude data files from version control
+# data/*.csv
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Logs
+logs/
+*.log
+
+# Local configuration
+config.ini
+secrets.json
+
+# Temporary files
+tmp/
+temp/
