@@ -11,7 +11,7 @@ from PIL import Image
 # Set page configuration
 st.set_page_config(
     page_title="Loan Approval Prediction",
-    page_icon="💰",
+    page_icon="ud83dudcb0",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -76,6 +76,19 @@ def load_feature_importances():
         return pd.read_csv(fi_path)
     return None
 
+# Load data for EDA
+@st.cache_data
+def load_data_for_eda():
+    train_path = 'data/loan_train.csv'
+    test_path = 'data/loan_test.csv'
+    if not os.path.exists(train_path) or not os.path.exists(test_path):
+        return None
+    
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
+    all_data = pd.concat([train_data, test_data], axis=0)
+    return all_data
+
 # Function to make predictions
 def predict_loan_approval(model, input_data):
     # Convert input data to DataFrame
@@ -123,6 +136,140 @@ def display_confusion_matrix():
         st.subheader("Model Performance")
         st.image(cm_path, caption="Confusion Matrix of the Model")
 
+# Function to display data insights and EDA
+def display_data_insights(data):
+    if data is None:
+        st.warning("Data files not found. Please run data_generation.py first.")
+        return
+    
+    st.subheader("Dataset Overview")
+    st.write(f"Total samples: {len(data)}")
+    st.write(f"Approval rate: {data['Loan_Approval'].mean():.2%}")
+    
+    # Data summary
+    with st.expander("View Data Summary"):
+        st.dataframe(data.describe())
+    
+    # Sample data
+    with st.expander("View Sample Data"):
+        st.dataframe(data.head(10))
+    
+    # Distribution of loan approval
+    st.subheader("Loan Approval Distribution")
+    fig = px.pie(
+        values=[data['Loan_Approval'].sum(), len(data) - data['Loan_Approval'].sum()],
+        names=['Approved', 'Rejected'],
+        title='Loan Approval Distribution',
+        color_discrete_sequence=['#4CAF50', '#F44336'],
+        hole=0.4
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Feature distributions
+    st.subheader("Feature Distributions")
+    
+    # Numeric features
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Credit Score Distribution
+        fig = px.histogram(
+            data, 
+            x="Credit_Score", 
+            color="Loan_Approval",
+            color_discrete_map={0: '#F44336', 1: '#4CAF50'},
+            marginal="box",
+            title="Credit Score Distribution",
+            labels={"Loan_Approval": "Loan Approved"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Income Distribution
+        fig = px.histogram(
+            data, 
+            x="Income", 
+            color="Loan_Approval",
+            color_discrete_map={0: '#F44336', 1: '#4CAF50'},
+            marginal="box",
+            title="Income Distribution",
+            labels={"Loan_Approval": "Loan Approved"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Loan Amount Distribution
+        fig = px.histogram(
+            data, 
+            x="Loan_Amount", 
+            color="Loan_Approval",
+            color_discrete_map={0: '#F44336', 1: '#4CAF50'},
+            marginal="box",
+            title="Loan Amount Distribution",
+            labels={"Loan_Approval": "Loan Approved"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Debt to Income Distribution
+        fig = px.histogram(
+            data, 
+            x="Debt_to_Income", 
+            color="Loan_Approval",
+            color_discrete_map={0: '#F44336', 1: '#4CAF50'},
+            marginal="box",
+            title="Debt-to-Income Ratio Distribution",
+            labels={"Loan_Approval": "Loan Approved"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Correlation heatmap
+    st.subheader("Feature Correlations")
+    numeric_data = data.select_dtypes(include=['float64', 'int64'])
+    corr = numeric_data.corr()
+    fig = px.imshow(
+        corr,
+        text_auto=True,
+        color_continuous_scale='RdBu_r',
+        title="Correlation Heatmap"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Categorical features
+    st.subheader("Categorical Feature Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Loan Purpose
+        purpose_counts = data.filter(like='Purpose_').sum().reset_index()
+        purpose_counts.columns = ['Loan Purpose', 'Count']
+        purpose_counts['Loan Purpose'] = purpose_counts['Loan Purpose'].str.replace('Purpose_', '')
+        
+        fig = px.bar(
+            purpose_counts,
+            x='Loan Purpose',
+            y='Count',
+            title='Loan Purpose Distribution',
+            color='Count',
+            color_continuous_scale='Viridis'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Marital Status
+        married_approval = data.groupby('Married')['Loan_Approval'].mean().reset_index()
+        married_approval['Marital Status'] = married_approval['Married'].map({0: 'Single', 1: 'Married'})
+        
+        fig = px.bar(
+            married_approval,
+            x='Marital Status',
+            y='Loan_Approval',
+            title='Approval Rate by Marital Status',
+            color='Loan_Approval',
+            color_continuous_scale='Viridis',
+            labels={"Loan_Approval": "Approval Rate"}
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 # Main function
 def main():
     # Load model
@@ -134,6 +281,9 @@ def main():
     
     # Load feature importances
     feature_importances = load_feature_importances()
+    
+    # Load data for EDA
+    data = load_data_for_eda()
     
     # Sidebar
     st.sidebar.markdown("<h2 class='sub-header'>About</h2>", unsafe_allow_html=True)
@@ -154,7 +304,7 @@ def main():
     st.markdown("<p class='sub-header'>Fill in your details to check if your loan application would be approved</p>", unsafe_allow_html=True)
     
     # Create tabs
-    tab1, tab2 = st.tabs(["Loan Application", "Model Insights"])
+    tab1, tab2, tab3 = st.tabs(["Loan Application", "Data Insights", "Model Insights"])
     
     with tab1:
         # Create columns for form layout
@@ -242,11 +392,15 @@ def main():
                     factors.append("Multiple factors combined led to this decision.")
             
             for factor in factors:
-                st.markdown(f"• {factor}")
+                st.markdown(f"u2022 {factor}")
             
             st.markdown("</div>", unsafe_allow_html=True)
     
     with tab2:
+        # Display data insights and EDA
+        display_data_insights(data)
+    
+    with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
