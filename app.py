@@ -136,6 +136,128 @@ def display_confusion_matrix():
         st.subheader("Model Performance")
         st.image(cm_path, caption="Confusion Matrix of the Model")
 
+# Function to display model comparison and insights
+def display_model_comparison():
+    # Model comparison data
+    models = {
+        'Logistic Regression': {
+            'Accuracy': 0.8450,
+            'Precision': 0.8525,
+            'Recall': 0.9870,
+            'F1': 0.9148,
+            'ROC AUC': 0.7986,
+            'Description': 'A linear model that estimates the probability of loan approval based on a linear combination of features.',
+            'Strengths': ['Simple and interpretable', 'Provides probability estimates', 'Less prone to overfitting with regularization'],
+            'Weaknesses': ['May not capture complex non-linear relationships', 'Limited by linearity assumption', 'Feature scaling is important']
+        },
+        'Random Forest': {
+            'Accuracy': 0.8530,
+            'Precision': 0.8566,
+            'Recall': 0.9917,
+            'F1': 0.9192,
+            'ROC AUC': 0.8273,
+            'Description': 'An ensemble learning method that builds multiple decision trees and merges their predictions.',
+            'Strengths': ['Handles non-linear relationships well', 'Provides feature importance scores', 'Robust to outliers and noise', 'Less prone to overfitting'],
+            'Weaknesses': ['Less interpretable than linear models', 'Can be computationally intensive', 'May overfit on noisy data if not tuned properly']
+        },
+        'Gradient Boosting': {
+            'Accuracy': 0.8420,
+            'Precision': 0.8594,
+            'Recall': 0.9715,
+            'F1': 0.9120,
+            'ROC AUC': 0.8217,
+            'Description': 'An ensemble technique that builds trees sequentially, with each tree correcting the errors of its predecessors.',
+            'Strengths': ['Often achieves state-of-the-art performance', 'Handles mixed data types well', 'Provides feature importance scores'],
+            'Weaknesses': ['More prone to overfitting than Random Forest', 'Requires careful tuning', 'Sequential nature makes it harder to parallelize']
+        }
+    }
+    
+    # Create dataframe for metrics comparison
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1', 'ROC AUC']
+    comparison_data = []
+    
+    for model_name, model_info in models.items():
+        model_metrics = {metric: model_info[metric] for metric in metrics}
+        model_metrics['Model'] = model_name
+        comparison_data.append(model_metrics)
+    
+    comparison_df = pd.DataFrame(comparison_data)
+    
+    # Display model comparison
+    st.subheader("Model Comparison")
+    
+    # Metrics comparison chart
+    fig = px.bar(
+        comparison_df, 
+        x='Model', 
+        y=metrics,
+        barmode='group',
+        title='Performance Metrics Across Models',
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Radar chart for model comparison
+    fig = px.line_polar(
+        comparison_df, 
+        r=metrics, 
+        theta=metrics,
+        line_close=True,
+        color='Model',
+        title='Model Performance Comparison (Radar Chart)',
+        color_discrete_sequence=px.colors.qualitative.Set2
+    )
+    fig.update_traces(fill='toself')
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Model details
+    st.subheader("Model Details")
+    
+    tabs = st.tabs(list(models.keys()))
+    
+    for i, (model_name, model_info) in enumerate(models.items()):
+        with tabs[i]:
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                st.markdown(f"**Description**: {model_info['Description']}")
+                
+                st.markdown("**Strengths**:")
+                for strength in model_info['Strengths']:
+                    st.markdown(f"- {strength}")
+                
+                st.markdown("**Weaknesses**:")
+                for weakness in model_info['Weaknesses']:
+                    st.markdown(f"- {weakness}")
+            
+            with col2:
+                # Create a DataFrame for the metrics
+                metrics_df = pd.DataFrame({
+                    'Metric': metrics,
+                    'Value': [model_info[metric] for metric in metrics]
+                })
+                
+                # Plot the metrics
+                fig = px.bar(
+                    metrics_df,
+                    x='Metric',
+                    y='Value',
+                    title=f'{model_name} Performance Metrics',
+                    color='Value',
+                    color_continuous_scale='Blues',
+                    text_auto='.3f'
+                )
+                fig.update_layout(yaxis_range=[0, 1])
+                st.plotly_chart(fig, use_container_width=True)
+    
+    # Selected model explanation
+    st.subheader("Selected Model: Random Forest")
+    st.info(
+        "The Random Forest model was selected as the best model based on its ROC AUC score (0.8273), which was the highest among all models. "
+        "It achieved the best overall balance of precision and recall, with particularly strong recall (99.17%), which is important for not missing good applicants. "
+        "The model also provides feature importance scores that help understand which factors most strongly influence loan approval decisions."
+    )
+
 # Function to display data insights and EDA
 def display_data_insights(data):
     if data is None:
@@ -401,6 +523,15 @@ def main():
         display_data_insights(data)
     
     with tab3:
+        st.subheader("Model Insights and Comparison")
+        st.markdown(
+            "This section provides insights into the machine learning models used for loan approval prediction. "
+            "We compare three different models: Logistic Regression, Random Forest, and Gradient Boosting."
+        )
+        
+        # Display model comparison
+        display_model_comparison()
+        
         col1, col2 = st.columns(2)
         
         with col1:
