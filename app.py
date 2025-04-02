@@ -199,9 +199,9 @@ def display_model_comparison():
     
     # Radar chart for model comparison
     fig = px.line_polar(
-        comparison_df, 
-        r=metrics, 
-        theta=metrics,
+        comparison_df.melt(id_vars='Model', value_vars=metrics), 
+        r='value',
+        theta='variable',
         line_close=True,
         color='Model',
         title='Model Performance Comparison (Radar Chart)',
