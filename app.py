@@ -90,7 +90,7 @@ def load_data_for_eda():
     return all_data
 
 # Function to make predictions
-def predict_loan_approval(model, input_data):
+def predict_loan_approval(model, input_data, threshold=0.5):
     # Convert input data to DataFrame
     input_df = pd.DataFrame([input_data])
     
@@ -109,7 +109,7 @@ def predict_loan_approval(model, input_data):
     
     # Make prediction
     probability = model.predict_proba(input_df)[0, 1]
-    prediction = 1 if probability >= 0.5 else 0
+    prediction = 1 if probability >= threshold else 0
     
     return prediction, probability
 
@@ -199,9 +199,9 @@ def display_model_comparison():
     
     # Radar chart for model comparison
     fig = px.line_polar(
-        comparison_df, 
-        r=metrics, 
-        theta=metrics,
+        comparison_df.melt(id_vars='Model', value_vars=metrics), 
+        r='value',
+        theta='variable',
         line_close=True,
         color='Model',
         title='Model Performance Comparison (Radar Chart)',
@@ -455,6 +455,10 @@ def main():
             existing_loans = st.number_input("Number of Existing Loans", min_value=0, max_value=10, value=1)
             debt_to_income = st.slider("Debt-to-Income Ratio", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
             payment_history = st.selectbox("Payment History", options=["Poor", "Good"], index=1)
+            
+            st.markdown("<h3>Approval Settings</h3>", unsafe_allow_html=True)
+            threshold = st.slider("Approval Threshold (%)", min_value=50, max_value=95, value=80, step=5) / 100.0
+            st.info("The model will approve loans only when the approval probability is greater than or equal to this threshold.")
         
         # Prepare input data
         input_data = {
@@ -474,7 +478,7 @@ def main():
         
         # Predict button
         if st.button("Predict Loan Approval"):
-            prediction, probability = predict_loan_approval(model, input_data)
+            prediction, probability = predict_loan_approval(model, input_data, threshold=threshold)
             
             st.markdown("<h2>Prediction Result</h2>", unsafe_allow_html=True)
             
